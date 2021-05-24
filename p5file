@@ -1,0 +1,121 @@
+//input your port on line 12, OR delete this and copy the starter code from the P5.serialcontrol application
+
+let serial;
+let latestData = "waiting for data";
+
+let potLeft = 0;
+let potRight = 0;
+let slider = 0;
+let button = 0;
+// let LEDByte;
+// let neoByte;
+let y;
+let sliderColor;
+
+function setup() {
+ createCanvas(windowWidth, windowHeight);
+
+ serial = new p5.SerialPort();
+
+ serial.list();
+ serial.open('/dev/tty.usbmodem14601');
+
+ serial.on('connected', serverConnected);
+
+ serial.on('list', gotList);
+
+ serial.on('data', gotData);
+
+ serial.on('error', gotError);
+
+ serial.on('open', gotOpen);
+
+ serial.on('close', gotClose);
+}
+
+function serverConnected() {
+ print("Connected to Server");
+}
+
+function gotList(thelist) {
+ // print("List of Serial Ports:");
+
+ for (let i = 0; i < thelist.length; i++) {
+  // print(i + " " + thelist[i]);
+ }
+}
+
+function gotOpen() {
+ print("Serial Port is Open");
+}
+
+function gotClose(){
+ print("Serial Port is Closed");
+ latestData = "Serial Port is Closed";
+}
+
+function gotError(theerror) {
+ print(theerror);
+}
+
+//where data comes in and we can fuck it up
+//data comes in as a string
+function gotData() {
+  
+ let currentString = serial.readLine();//reading the code, looking for                                           //commas and line breaks
+  
+  if(currentString.length > 0) {
+    let sensorArray = split(currentString, ","); //splits string at                                                        //delimiter  
+    slider = Number(sensorArray[0]);
+    potLeft = Number(sensorArray[1]);
+    potRight = Number(sensorArray[2]);
+    button = Number(sensorArray[3]);
+  }
+}
+
+function draw() {
+
+  background(255,255,255);  
+
+  var colorLibrary = ["LavenderBlush","LemonChiffon","Lavender","LightCyan","LightPink","PaleTurquoise","Pink","Plum","PowderBlue"];     
+  
+  sliderColor = floor(map(slider, 30, 1023, 0, 8));
+  
+  thisColor = colorLibrary[sliderColor]; 
+  
+  colorString = (String(thisColor));
+  
+  fill(colorString);
+  
+  noStroke();
+  
+  x = map(potLeft,0,1023,0,windowWidth);
+  
+  y = map(potRight,0,1023,0,windowHeight);
+  
+  ellipse(x,y,50,50);
+  
+  serialSend();
+  
+}
+
+
+function serialSend(){
+  
+  neoByte = String((sliderColor + 1));
+  
+  
+  if((y <= height/3) && (y >= 0)){
+    LEDByte = '1';
+  }else if((y > height/3) && (y < 2*height/3)){
+    LEDByte = '2';
+  }else if ((y > 2*height/3) && (y < height)){
+    LEDByte = '3';
+  }
+  
+  serial.write("<");
+  serial.write(neoByte);  
+  serial.write(",");
+  serial.write(LEDByte);
+  serial.write(">"); 
+}
