@@ -1,0 +1,273 @@
+#include <FastLED.h>
+
+#define NUM_LEDS 5 //number of LEDs in the NeoPixel Strip
+#define PIXEL_PIN 8 //Pin location of Neopixel input
+
+//defining html colors used in p5 program 
+//because of LED limitations, different colors were used to make 
+//the neopixels appear similar to the screen color and were then 
+//renamed to match html color names used in p5
+#define LAVENDER_BLUSH CRGB::MediumOrchid;
+#define LEMON_CHIFFON CRGB::Goldenrod; 
+#define LAVENDER CRGB(102, 51, 153);
+#define LIGHT_CYAN CRGB::CornflowerBlue;
+#define LIGHT_PINK CRGB::HotPink; 
+#define PALE_TURQUOISE CRGB::DarkTurquoise;
+#define PINK CRGB::DeepPink; 
+#define PLUM CRGB::Indigo;
+#define POWDER_BLUE CRGB::SteelBlue;
+
+// Define the array of leds
+CRGB leds[NUM_LEDS];
+
+const byte numChars = 32;
+char receivedChars[numChars];
+char tempChars[numChars]; // temporary array for use when parsing
+
+//sets variables to be filled with 
+int neoByte = 0;
+int LEDByte = 0;
+
+boolean newData = false; 
+
+//inputs
+int slidePin = A2;
+int potPin1 = A1;
+int potPin2 = A0;
+int buttonPin = 12;
+
+//outputs 
+int LEDR1 = 11;
+int LEDR2 = 10; 
+int LEDR3 = 9; 
+int LEDL1 = 6; 
+int LEDL2 = 5; 
+int LEDL3 = 17;
+
+void setup() {
+
+  Serial.begin(9600);
+  
+  FastLED.addLeds<NEOPIXEL, PIXEL_PIN>(leds, NUM_LEDS);  // declaring Neopixel strip to FastLED
+  FastLED.setBrightness(20); //adjusting brightest of LEDs
+
+  //declaring outputs
+  pinMode(LEDR1, OUTPUT);
+  pinMode(LEDR2, OUTPUT);
+  pinMode(LEDR3, OUTPUT);
+  pinMode(LEDL1, OUTPUT);
+  pinMode(LEDL2, OUTPUT);
+  pinMode(LEDL3, OUTPUT);
+  pinMode(PIXEL_PIN, OUTPUT);
+  
+}
+
+void loop() {
+
+//readings from the input pins
+  int slide = analogRead(slidePin);
+  int pot1 = analogRead(potPin1);
+  int pot2 = analogRead(potPin2);
+  int button = digitalRead(buttonPin);
+  
+//sends sensor values to P5
+  Serial.print(slide);
+  Serial.print(",");
+  Serial.print(pot1);
+  Serial.print(",");
+  Serial.print(pot2);
+  Serial.print(",");
+  Serial.println(button);
+//  Serial.print(",");
+//  Serial.print(digitalRead(LEDR1));
+//  Serial.print(",");
+//  Serial.print(digitalRead(LEDR2));
+//  Serial.print(",");
+//  Serial.print(digitalRead(LEDR3));
+//  Serial.print(",");
+//  Serial.print(digitalRead(LEDL1));
+//  Serial.print(",");
+//  Serial.println(digitalRead(LEDL2));
+
+//  //calls functions for output values
+   recvWithStartEndMarkers();
+    if (newData == true) {
+        strcpy(tempChars, receivedChars);
+        // this temporary copy is necessary to protect the original data
+        //   because strtok() used in parseData() replaces the commas with \0
+        parseData();
+        LEDController();
+        neoPixelController();   
+        newData = false;
+    }
+    
+  delay(10);   // delay in between reads for stability
+}
+
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+
+    while (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
+void parseData() {      // split the data into its parts
+    
+    char * strtokIndx; // this is used by strtok() as an index
+
+    strtokIndx = strtok(tempChars,","); // reads the first char in index
+    neoByte = atoi(strtokIndx);     // convert this part to an integer
+ 
+    strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
+    LEDByte = atoi(strtokIndx);     // convert this part to an integer
+}
+
+//sets Neopixel color based on serial input
+void neoPixelController(){
+
+//  listens for incoming data
+    if(Serial.available() > 0){
+
+      //reads neoByte and sets LEDs to corresponsing color
+      
+     if (neoByte == 1) {  //LavenderBlush
+      for (int i = 0; i < NUM_LEDS; i++) {        //itterates over each LED in array
+        leds[i] = LAVENDER_BLUSH;                 //set each LED in array to CRGB Color Defined at top
+          leds[i].r = dim8_video(leds[i].r);      // gamma correction function for more nuanced color output
+          leds[i].g = dim8_video(leds[i].g);
+          leds[i].b = dim8_video(leds[i].b);
+        }
+      } if (neoByte == 2) { //LemonChiffon
+        for (int i = 0; i < NUM_LEDS; i++){
+          leds[i] = LEMON_CHIFFON;                
+            leds[i].r = dim8_video(leds[i].r);    
+            leds[i].g = dim8_video(leds[i].g);
+            leds[i].b = dim8_video(leds[i].b);
+           }
+      } else if (neoByte == 3) { //Lavender
+        for (int i = 0; i < NUM_LEDS; i++) {
+          leds[i] = LAVENDER;
+            leds[i].r = dim8_video(leds[i].r);    
+            leds[i].g = dim8_video(leds[i].g);
+            leds[i].b = dim8_video(leds[i].b);
+          }
+      } else if (neoByte == 4) { //LightCyan
+        for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = LIGHT_CYAN;
+             leds[i].r = dim8_video(leds[i].r);    
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+          }
+      } else if (neoByte == 5) {    //LightPink
+        for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = LIGHT_PINK;
+             leds[i].r = dim8_video(leds[i].r);    
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+          }
+      } else if (neoByte == 6) {   //PaleTurquoise
+         for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = PALE_TURQUOISE;
+             leds[i].r = dim8_video(leds[i].r);    
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+           }
+      } else if (neoByte == 7) {      //Pink
+         for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = PINK;
+             leds[i].r = dim8_video(leds[i].r);    
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+             } 
+      } else if (neoByte == 8) {    // Plum
+         for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = PLUM; 
+             leds[i].r = dim8_video(leds[i].r);    
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+             }
+      } else if (neoByte == 9) {  //PowderBlue
+        for (int i = 0; i < NUM_LEDS; i++) {
+           leds[i] = POWDER_BLUE;
+             leds[i].r = dim8_video(leds[i].r);   
+             leds[i].g = dim8_video(leds[i].g);
+             leds[i].b = dim8_video(leds[i].b);
+            }
+      }
+
+      //sets neopixels to the assigned values
+      FastLED.show();
+    //delay for stability   
+    delay(1);
+  } 
+}
+
+//sets which LEDs are on based on serial inputs
+void LEDController(){
+ 
+  //listen for incoming data
+  if(Serial.available() > 0){
+
+    //these statements read values that have already been delclared
+    //in p5 based on on screen information and interpret those values
+    //for the Arduino
+    
+    //if p5 ball is high on the screen, turn on top LEDs
+    if(LEDByte == 1){
+     digitalWrite(LEDR1,LOW);
+     digitalWrite(LEDL1,LOW);
+
+     digitalWrite(LEDR2,HIGH);
+     digitalWrite(LEDR3,HIGH);
+     digitalWrite(LEDL2,HIGH);
+     digitalWrite(LEDL3, HIGH);
+     
+     //if p5ball is mid screen, turn on middle LEDs
+    } else if(LEDByte == 2){
+     digitalWrite(LEDL2, LOW);
+     digitalWrite(LEDR2, LOW);
+     
+     digitalWrite(LEDL3, HIGH);
+     digitalWrite(LEDR1, HIGH);
+     digitalWrite(LEDR3, HIGH);
+     digitalWrite(LEDL1, HIGH);
+
+     //if p5b ball is low in the screen, turn on bottom LEDs
+    } else if(LEDByte == 3){
+     digitalWrite(LEDR3, LOW);
+     digitalWrite(LEDL3, LOW);
+
+     digitalWrite(LEDR1, HIGH);
+     digitalWrite(LEDR2, HIGH);
+     digitalWrite(LEDL1, HIGH);
+     digitalWrite(LEDL2, HIGH);
+    }
+
+    delay(1); //delay inbetween readings for stability 
+  }
+}
