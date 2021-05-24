@@ -78,18 +78,8 @@ void loop() {
   Serial.print(pot2);
   Serial.print(",");
   Serial.println(button);
-//  Serial.print(",");
-//  Serial.print(digitalRead(LEDR1));
-//  Serial.print(",");
-//  Serial.print(digitalRead(LEDR2));
-//  Serial.print(",");
-//  Serial.print(digitalRead(LEDR3));
-//  Serial.print(",");
-//  Serial.print(digitalRead(LEDL1));
-//  Serial.print(",");
-//  Serial.println(digitalRead(LEDL2));
 
-//  //calls functions for output values
+ //calls functions for output values
    recvWithStartEndMarkers();
     if (newData == true) {
         strcpy(tempChars, receivedChars);
